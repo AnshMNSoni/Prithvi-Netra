@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Trees, Building2, Droplet, Zap, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Intervention {
@@ -22,9 +22,11 @@ interface Intervention {
 export function WhatIfSimulator({
   className = "",
   onChange,
+  location = "New York",
 }: {
   className?: string;
   onChange?: (activeInterventions: Record<string, number>) => void;
+  location?: string;
 }) {
   const { toast } = useToast();
   const [simulationResult, setSimulationResult] = useState<any>(null);
@@ -103,13 +105,15 @@ export function WhatIfSimulator({
 
       const response = await apiRequest("POST", "/api/simulations", {
         name: `Scenario: ${interventionNames}`,
-        location: "New York",
+        location: location,
         interventions: activeInterventions,
       });
       return await response.json();
     },
     onSuccess: (data) => {
       setSimulationResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/simulations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Simulation Complete",
         description: "Your scenario has been analyzed",

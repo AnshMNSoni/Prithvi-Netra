@@ -155,32 +155,46 @@ export default function Policy() {
     }
   };
 
-  const sustainabilityScore = 73;
+  const envHealthScore = metricsData 
+    ? Math.max(10, Math.min(100, Math.round(100 - (metricsData.airQuality - 20) * 0.8))) 
+    : 75;
+
+  const urbanDevScore = metricsData 
+    ? Math.max(10, Math.min(100, Math.round(metricsData.vegetationIndex * 100))) 
+    : 65;
+
+  const resourceScore = metricsData 
+    ? Math.max(10, Math.min(100, Math.round(100 - Math.abs(metricsData.waterQuality - 7.2) * 30))) 
+    : 70;
+
+  const communityWellbeingScore = Math.round((envHealthScore + urbanDevScore) / 2);
+
+  const sustainabilityScore = Math.round((envHealthScore + urbanDevScore + resourceScore + communityWellbeingScore) / 4);
 
   const metrics = [
     {
       category: "Environmental Health",
-      score: 78,
-      status: "good",
-      icon: CheckCircle2,
+      score: envHealthScore,
+      status: envHealthScore >= 70 ? "good" : "warning",
+      icon: envHealthScore >= 70 ? CheckCircle2 : AlertTriangle,
     },
     {
       category: "Urban Development",
-      score: 65,
-      status: "warning",
-      icon: AlertTriangle,
+      score: urbanDevScore,
+      status: urbanDevScore >= 70 ? "good" : "warning",
+      icon: urbanDevScore >= 70 ? CheckCircle2 : AlertTriangle,
     },
     {
       category: "Community Wellbeing",
-      score: 82,
-      status: "good",
-      icon: CheckCircle2,
+      score: communityWellbeingScore,
+      status: communityWellbeingScore >= 70 ? "good" : "warning",
+      icon: communityWellbeingScore >= 70 ? CheckCircle2 : AlertTriangle,
     },
     {
       category: "Resource Management",
-      score: 70,
-      status: "good",
-      icon: TrendingUp,
+      score: resourceScore,
+      status: resourceScore >= 70 ? "good" : "warning",
+      icon: resourceScore >= 70 ? CheckCircle2 : TrendingUp,
     },
   ];
 

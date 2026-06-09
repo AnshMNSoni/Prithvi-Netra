@@ -58,41 +58,7 @@ export default function Community() {
     return `${diffDays} days ago`;
   };
 
-  const displayReports: any[] = reports.length > 0 ? reports : [
-    {
-      id: "1",
-      category: "Air Quality",
-      location: "123 Main St, Downtown",
-      description: "Heavy smoke detected near industrial area causing breathing issues.",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      upvotes: 24,
-      status: "under-review",
-      latitude: 40.7306,
-      longitude: -73.9352,
-    },
-    {
-      id: "2",
-      category: "Green Space",
-      location: "Central Park Area",
-      description: "Request for more benches and shade structures in the park.",
-      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      upvotes: 15,
-      status: "in-progress",
-      latitude: 40.7829,
-      longitude: -73.9654,
-    },
-    {
-      id: "3",
-      category: "Water",
-      location: "River Road",
-      description: "Water quality concern - unusual color observed in the river.",
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      upvotes: 32,
-      status: "resolved",
-      latitude: 40.7061,
-      longitude: -73.9969,
-    },
-  ];
+  const displayReports: any[] = reports;
 
   const statusColors = {
     "under-review": "bg-chart-3/10 text-chart-3 border-chart-3/20",
@@ -121,8 +87,8 @@ export default function Community() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Community Hub</h1>
-              <p className="text-muted-foreground">
-                Report issues and engage with your community
+              <p className="text-muted-foreground text-sm max-w-2xl">
+                Crowdsource localized environmental reports, upvote concerns, and help planners prioritize zoning interventions. Click on the map to submit a new report.
               </p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={(open) => {

@@ -31,6 +31,74 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.communityReports = new Map();
     this.simulations = new Map();
+
+    // Seed community reports
+    const report1: CommunityReport = {
+      id: "report-seed-1",
+      category: "Air Quality",
+      location: "123 Main St, Downtown",
+      description: "Heavy smoke detected near industrial area causing breathing issues.",
+      latitude: 40.7306,
+      longitude: -73.9352,
+      status: "under-review",
+      upvotes: 24,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    };
+    const report2: CommunityReport = {
+      id: "report-seed-2",
+      category: "Green Space",
+      location: "Central Park Area",
+      description: "Request for more benches and shade structures in the park.",
+      latitude: 40.7829,
+      longitude: -73.9654,
+      status: "in-progress",
+      upvotes: 15,
+      createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+    };
+    const report3: CommunityReport = {
+      id: "report-seed-3",
+      category: "Water",
+      location: "River Road",
+      description: "Water quality concern - unusual color observed in the river.",
+      latitude: 40.7061,
+      longitude: -73.9969,
+      status: "resolved",
+      upvotes: 32,
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    };
+
+    this.communityReports.set(report1.id, report1);
+    this.communityReports.set(report2.id, report2);
+    this.communityReports.set(report3.id, report3);
+
+    // Seed scenario simulations
+    const sim1: Simulation = {
+      id: "sim-seed-1",
+      name: "Scenario: Tree Coverage",
+      location: "New York",
+      interventions: { trees: 20 },
+      predictions: {
+        airQuality: "-4% improvement",
+        vegetation: "+0.160 NDVI",
+        temperature: "-0.6°C cooler"
+      },
+      createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    };
+    const sim2: Simulation = {
+      id: "sim-seed-2",
+      name: "Scenario: Renewable Energy, Water Bodies",
+      location: "Ahmedabad",
+      interventions: { renewables: 30, water: 10 },
+      predictions: {
+        airQuality: "-15% improvement (significant)",
+        vegetation: "No significant change",
+        temperature: "-0.5°C cooler"
+      },
+      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    };
+
+    this.simulations.set(sim1.id, sim1);
+    this.simulations.set(sim2.id, sim2);
   }
 
   async getUser(id: string): Promise<User | undefined> {

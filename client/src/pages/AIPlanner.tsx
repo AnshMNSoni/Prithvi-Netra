@@ -41,25 +41,75 @@ export default function AIPlanner() {
     queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}&lat=${coordinates[0]}&lon=${coordinates[1]}`],
   });
 
-  const { data: insightsResponse, refetch: refetchInsights } = useQuery<any>({
+  const { data: insightsResponse, isLoading: isLoadingInsights } = useQuery<any>({
     queryKey: ["/api/ai/insights", location, metricsData],
-    enabled: false,
-  });
-
-  useEffect(() => {
-    if (metricsData) {
-      fetch("/api/ai/insights", {
+    queryFn: async () => {
+      if (!metricsData) return null;
+      const res = await fetch("/api/ai/insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ location, metrics: metricsData }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("AI Insights:", data);
-        })
-        .catch((err) => console.error("Error fetching insights:", err));
-    }
-  }, [metricsData, location]);
+      });
+      if (!res.ok) throw new Error("Failed to fetch AI insights");
+      return res.json();
+    },
+    enabled: !!metricsData,
+  });
+
+  const { data: simulations = [] } = useQuery<any[]>({
+    queryKey: ["/api/simulations"],
+  });
+
+  const latestSim = simulations.find((sim: any) => sim.location.toLowerCase() === location.toLowerCase());
+
+  const activeInterventions = Object.keys(interventions).length > 0
+    ? interventions
+    : latestSim?.interventions || { trees: 20, renewables: 30, water: 10 };
+
+  const getSimulatedMetrics = () => {
+    if (!metricsData) return null;
+    
+    let aqiDiffPercent = 0;
+    if (activeInterventions.trees) aqiDiffPercent -= activeInterventions.trees * 0.2;
+    if (activeInterventions.renewables) aqiDiffPercent -= activeInterventions.renewables * 0.15;
+    if (activeInterventions.housing) aqiDiffPercent += activeInterventions.housing * 0.1;
+    
+    let ndviDiff = 0;
+    if (activeInterventions.trees) ndviDiff += activeInterventions.trees * 0.008;
+    if (activeInterventions.water) ndviDiff += activeInterventions.water * 0.003;
+    if (activeInterventions.housing) ndviDiff -= activeInterventions.housing * 0.005;
+
+    let tempDiff = 0;
+    if (activeInterventions.trees) tempDiff -= activeInterventions.trees * 0.03;
+    if (activeInterventions.water) tempDiff -= activeInterventions.water * 0.05;
+    if (activeInterventions.housing) tempDiff += activeInterventions.housing * 0.02;
+
+    const baseAQI = metricsData.airQuality;
+    const baseNDVI = metricsData.vegetationIndex;
+    const baseTemp = metricsData.temperature;
+
+    const simAQI = Math.max(0, Math.round(baseAQI * (1 + aqiDiffPercent / 100)));
+    const simNDVI = Math.min(1.0, Math.max(0, baseNDVI + ndviDiff));
+    const simTemp = baseTemp + tempDiff;
+
+    return {
+      airQuality: {
+        val: simAQI,
+        diffPct: aqiDiffPercent,
+      },
+      vegetation: {
+        val: simNDVI,
+        diffPct: baseNDVI > 0 ? (ndviDiff / baseNDVI) * 100 : 0,
+      },
+      temperature: {
+        val: simTemp,
+        diff: tempDiff,
+      }
+    };
+  };
+
+  const simMetrics = getSimulatedMetrics();
+  const insights = insightsResponse?.insights || [];
 
   const handleSearch = async () => {
     const query = searchInput.trim();
@@ -113,34 +163,7 @@ export default function AIPlanner() {
     localStorage.setItem("current_coordinates", JSON.stringify(coords));
   };
 
-  const mockInsights = insightsResponse?.insights || [
-    {
-      id: "1",
-      title: "Increase Green Cover in Zone 3",
-      description:
-        "Low vegetation index detected in residential zone with high population density.",
-      severity: "high" as const,
-      recommendation:
-        "Plant 200+ trees and create 3 new parks. Estimated cost: $500K. Expected NDVI improvement: 0.15 over 2 years.",
-    },
-    {
-      id: "2",
-      title: "Improve Air Quality Monitoring",
-      description:
-        "Insufficient AQI sensors detected in industrial corridor.",
-      severity: "medium" as const,
-      recommendation:
-        "Install 5 additional air quality sensors. Cost: $50K. Coverage improvement: 85%.",
-    },
-    {
-      id: "3",
-      title: "Optimize Water Management",
-      description: "Potential flood risk in low-lying areas during monsoon.",
-      severity: "low" as const,
-      recommendation:
-        "Enhance drainage systems and create retention ponds. Cost: $300K.",
-    },
-  ];
+  // Fallback insights are handled by the server API
 
   return (
     <div className="min-h-screen bg-background">
@@ -216,7 +239,7 @@ export default function AIPlanner() {
           <TabsContent value="simulator">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-2">
-                <WhatIfSimulator onChange={setInterventions} />
+                <WhatIfSimulator onChange={setInterventions} location={location} />
               </div>
               <Card className="lg:col-span-3 p-0 overflow-hidden">
                 <div className="h-[350px] md:h-[600px]">
@@ -269,7 +292,16 @@ export default function AIPlanner() {
           <TabsContent value="insights">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <AIInsightsPanel insights={mockInsights} />
+                {isLoadingInsights ? (
+                  <Card className="p-6 flex items-center justify-center min-h-[300px]">
+                    <div className="text-center space-y-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto animate-infinite"></div>
+                      <p className="text-sm text-muted-foreground mt-2">Generating AI insights...</p>
+                    </div>
+                  </Card>
+                ) : (
+                  <AIInsightsPanel insights={insights} />
+                )}
               </div>
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Impact Summary</h3>
@@ -303,61 +335,100 @@ export default function AIPlanner() {
           <TabsContent value="comparison">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">
-                  Business as Usual
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">
+                    Business as Usual
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4">Baseline environment metrics for {location}</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Air Quality
                     </span>
-                    <span className="font-mono text-sm">AQI 65</span>
+                    <span className="font-mono text-sm font-semibold">{metricsData?.airQuality ?? 65} AQI</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Green Cover
                     </span>
-                    <span className="font-mono text-sm">22%</span>
+                    <span className="font-mono text-sm font-semibold">{(metricsData?.vegetationIndex ?? 0.55).toFixed(2)} NDVI</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Water Quality
                     </span>
-                    <span className="font-mono text-sm">6.8 pH</span>
+                    <span className="font-mono text-sm font-semibold">{metricsData?.waterQuality ?? 6.8} pH</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2">
+                    <span className="text-sm text-muted-foreground">
+                      Temperature
+                    </span>
+                    <span className="font-mono text-sm font-semibold">{metricsData?.temperature ?? 22}°C</span>
                   </div>
                 </div>
               </Card>
 
               <Card className="p-6 border-primary/50">
-                <h3 className="text-lg font-semibold mb-4 text-primary">
-                  Sustainable Growth
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1 text-primary">
+                      Sustainable Plan
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Using {Object.keys(interventions).length > 0 ? "Active Simulator Sandbox" : latestSim ? `Saved Scenario: "${latestSim.name}"` : "Default Sustainable Plan"}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Air Quality
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm">AQI 42</span>
-                      <span className="text-xs text-chart-2">-35%</span>
+                      <span className="font-mono text-sm font-semibold">{simMetrics ? simMetrics.airQuality.val : "..."} AQI</span>
+                      {simMetrics && (
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${simMetrics.airQuality.diffPct <= 0 ? "bg-chart-2/10 text-chart-2" : "bg-destructive/10 text-destructive"}`}>
+                          {simMetrics.airQuality.diffPct > 0 ? "+" : ""}{Math.round(simMetrics.airQuality.diffPct)}%
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Green Cover
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm">35%</span>
-                      <span className="text-xs text-chart-2">+59%</span>
+                      <span className="font-mono text-sm font-semibold">{simMetrics ? simMetrics.vegetation.val.toFixed(2) : "..."} NDVI</span>
+                      {simMetrics && (
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${simMetrics.vegetation.diffPct >= 0 ? "bg-chart-2/10 text-chart-2" : "bg-destructive/10 text-destructive"}`}>
+                          {simMetrics.vegetation.diffPct > 0 ? "+" : ""}{Math.round(simMetrics.vegetation.diffPct)}%
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-b border-border/50 pb-2">
                     <span className="text-sm text-muted-foreground">
                       Water Quality
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm">7.2 pH</span>
-                      <span className="text-xs text-chart-2">+6%</span>
+                      <span className="font-mono text-sm font-semibold">{(metricsData?.waterQuality ?? 6.8)} pH</span>
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-chart-2/10 text-chart-2">
+                        0%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center pb-2">
+                    <span className="text-sm text-muted-foreground">
+                      Temperature
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-semibold">{simMetrics ? simMetrics.temperature.val.toFixed(1) : "..."}°C</span>
+                      {simMetrics && (
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${simMetrics.temperature.diff <= 0 ? "bg-chart-2/10 text-chart-2" : "bg-destructive/10 text-destructive"}`}>
+                          {simMetrics.temperature.diff > 0 ? "+" : ""}{simMetrics.temperature.diff.toFixed(1)}°C
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

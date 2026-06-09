@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Satellite,
   TrendingUp,
@@ -15,6 +16,10 @@ import {
 import heroImage from "@assets/generated_images/Earth_night_satellite_view_fb2e5b3d.png";
 
 export default function Home() {
+  const { data: statsData } = useQuery<any>({
+    queryKey: ["/api/stats"],
+  });
+
   const features = [
     {
       icon: <Satellite className="h-6 w-6" />,
@@ -43,10 +48,10 @@ export default function Home() {
   ];
 
   const stats = [
-    { value: "50+", label: "Cities Using Platform" },
-    { value: "2.5M", label: "Data Points Analyzed" },
-    { value: "15K+", label: "Community Reports" },
-    { value: "98%", label: "Prediction Accuracy" },
+    { value: statsData ? String(statsData.citiesCount) : "...", label: "Cities Monitored" },
+    { value: statsData ? statsData.dataPointsCount.toLocaleString() : "...", label: "Data Points Analyzed" },
+    { value: statsData ? String(statsData.reportsCount) : "...", label: "Community Reports" },
+    { value: statsData ? String(statsData.simulationsCount) : "...", label: "Scenarios Simulated" },
   ];
 
   const metrics = [
