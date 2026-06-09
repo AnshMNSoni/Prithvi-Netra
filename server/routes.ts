@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { nasaService } from "./services/nasa";
 import { aiService } from "./services/groq";
 import { insertCommunityReportSchema, insertSimulationSchema } from "@shared/schema";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nasa/metrics", async (req, res) => {

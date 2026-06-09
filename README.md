@@ -2,6 +2,16 @@
 
 Prithvi Netra is a web-based platform that enables users to analyze, visualize, and plan for urban growth using NASA Earth observation data. The platform focuses on identifying urban challenges and supporting data-driven decision-making for sustainable city development.
 
+## ⚡ Recent Updates (June 2026)
+
+- **Dynamic Statistics**: Replaced hardcoded homepage numbers with real-time stats queried directly from database records (monitored cities, community reports, and active scenario simulations).
+- **AI Insights & Recommendations**: Integrated a POST route fetching custom location-specific insights from Groq API (fallback to metric-based guidelines when offline).
+- **Interactive Simulator Sync**: Configured the *What-If Simulator* to accept external state. Planners can click **Apply Intervention** on any AI recommendation to instantly sync checkboxes and sliders.
+- **Scenario Comparison**: Replaced static comparisons with a dynamic tab that computes and compares sandbox simulated outcomes against the city's baseline metrics in real time.
+- **Dynamic Policy Insights**: Programmed the Sustainability & Wellbeing index score to compute dynamically from the location's live Air Quality, NDVI, and Water Quality metrics.
+- **Animated Trend Graphs**: Embedded 6-month historical AQI and NDVI graphs with entrance animations (powered by `recharts` and `framer-motion`).
+- **PDF Report Downloads**: Fixed ESM named export constructor bug in jsPDF, allowing users to print and download full reports successfully.
+
 ## 🌐 Features
 
 1️⃣ Urban Issue Analysis: Identify city problems like pollution, lack of greenery, urban heat islands, flood risks, and more.

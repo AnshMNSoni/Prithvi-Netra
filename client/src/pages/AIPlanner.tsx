@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Share2, Search } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 const CITY_COORDINATES: Record<string, [number, number]> = {
   "new york": [40.7128, -74.006],
@@ -111,6 +112,113 @@ export default function AIPlanner() {
   const simMetrics = getSimulatedMetrics();
   const insights = insightsResponse?.insights || [];
 
+  const saveScenarioMutation = useMutation({
+    mutationFn: async (scenarioName: string) => {
+      const response = await fetch("/api/simulations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: scenarioName,
+          location: location,
+          interventions: interventions,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save scenario");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/simulations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Scenario Saved",
+        description: `Successfully saved "${data.name}"`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save scenario",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveScenario = () => {
+    if (Object.keys(interventions).length === 0) {
+      toast({
+        title: "No interventions active",
+        description: "Please adjust simulator sliders before saving a scenario.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const name = prompt("Enter a name for this scenario:", `Scenario: ${location} Plan`);
+    if (name) {
+      saveScenarioMutation.mutate(name);
+    }
+  };
+
+  const handleShareScenario = () => {
+    const activeList = Object.entries(interventions)
+      .map(([k, v]) => `${k}: ${v}%`)
+      .join(", ");
+    
+    const textToCopy = `PrithviNetra Urban Scenario for ${location}: ${activeList || "Default Plan"}`;
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        toast({
+          title: "Link Copied",
+          description: "Scenario details copied to clipboard. Share it with your team!",
+        });
+      })
+      .catch(() => {
+        toast({
+          title: "Error",
+          description: "Failed to copy scenario to clipboard",
+          variant: "destructive",
+        });
+      });
+  };
+
+  const handleApplyIntervention = (insight: any) => {
+    const title = insight.title.toLowerCase();
+    const desc = (insight.recommendation || "").toLowerCase() + " " + (insight.description || "").toLowerCase();
+    
+    let targetKey = "";
+    let val = 25; // default recommendation percentage
+    
+    const match = desc.match(/(\d+)%/);
+    if (match) {
+      val = parseInt(match[1]);
+    }
+
+    if (title.includes("tree") || title.includes("green") || title.includes("vegetation") || title.includes("canopy") ||
+        desc.includes("tree") || desc.includes("green") || desc.includes("park")) {
+      targetKey = "trees";
+    } else if (title.includes("water") || title.includes("flood") || title.includes("pond") || title.includes("drainage") ||
+               desc.includes("water") || desc.includes("flood") || desc.includes("retention")) {
+      targetKey = "water";
+    } else if (title.includes("renewable") || title.includes("solar") || title.includes("wind") || title.includes("energy") || title.includes("aqi") || title.includes("air") ||
+               desc.includes("renewable") || desc.includes("solar") || desc.includes("wind") || desc.includes("aqi") || desc.includes("sensor")) {
+      targetKey = "renewables";
+    } else if (title.includes("housing") || title.includes("building") || title.includes("density") || title.includes("zoning") ||
+               desc.includes("housing") || desc.includes("building") || desc.includes("residential")) {
+      targetKey = "housing";
+    } else {
+      targetKey = "trees";
+    }
+
+    setInterventions(prev => ({
+      ...prev,
+      [targetKey]: val
+    }));
+
+    toast({
+      title: "Intervention Configured",
+      description: `Configured ${targetKey} to ${val}% in the simulator sandbox. Go to "What-If Simulator" tab to view it!`,
+    });
+  };
+
   const handleSearch = async () => {
     const query = searchInput.trim();
     if (!query) return;
@@ -177,11 +285,21 @@ export default function AIPlanner() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Button variant="outline" data-testid="button-save-scenario" className="flex-1 sm:flex-initial justify-center">
+              <Button 
+                variant="outline" 
+                data-testid="button-save-scenario" 
+                className="flex-1 sm:flex-initial justify-center"
+                onClick={handleSaveScenario}
+                disabled={saveScenarioMutation.isPending}
+              >
                 <Save className="h-4 w-4 mr-2" />
-                Save Scenario
+                {saveScenarioMutation.isPending ? "Saving..." : "Save Scenario"}
               </Button>
-              <Button data-testid="button-share-scenario" className="flex-1 sm:flex-initial justify-center">
+              <Button 
+                data-testid="button-share-scenario" 
+                className="flex-1 sm:flex-initial justify-center"
+                onClick={handleShareScenario}
+              >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
@@ -239,7 +357,7 @@ export default function AIPlanner() {
           <TabsContent value="simulator">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-2">
-                <WhatIfSimulator onChange={setInterventions} location={location} />
+                <WhatIfSimulator onChange={setInterventions} location={location} value={interventions} />
               </div>
               <Card className="lg:col-span-3 p-0 overflow-hidden">
                 <div className="h-[350px] md:h-[600px]">
@@ -300,7 +418,7 @@ export default function AIPlanner() {
                     </div>
                   </Card>
                 ) : (
-                  <AIInsightsPanel insights={insights} />
+                  <AIInsightsPanel insights={insights} onApply={handleApplyIntervention} />
                 )}
               </div>
               <Card className="p-6">

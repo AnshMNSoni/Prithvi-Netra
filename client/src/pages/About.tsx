@@ -101,25 +101,6 @@ export default function About() {
           </div>
         </section>
 
-        {/* Team */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Our Team</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {team.map((member, index) => (
-              <Card key={index} className="p-6">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mb-4">
-                  {member.name[0]}
-                </div>
-                <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
-                <p className="text-sm text-primary mb-3">{member.role}</p>
-                <p className="text-sm text-muted-foreground">
-                  {member.description}
-                </p>
-              </Card>
-            ))}
-          </div>
-        </section>
-
         {/* Technology */}
         <section>
           <h2 className="text-3xl font-bold mb-8">Technology Stack</h2>

@@ -6,6 +6,8 @@ import { Download, TrendingUp, AlertTriangle, CheckCircle2, Search } from "lucid
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { DataChart } from "@/components/DataChart";
+import { motion } from "framer-motion";
 
 const CITY_COORDINATES: Record<string, [number, number]> = {
   "new york": [40.7128, -74.006],
@@ -50,6 +52,14 @@ export default function Policy() {
       return res.json();
     },
     enabled: !!metricsData,
+  });
+
+  const { data: historicalAQI = [] } = useQuery<any[]>({
+    queryKey: [`/api/nasa/historical?location=${encodeURIComponent(location)}&metric=aqi&months=6`],
+  });
+
+  const { data: historicalNDVI = [] } = useQuery<any[]>({
+    queryKey: [`/api/nasa/historical?location=${encodeURIComponent(location)}&metric=ndvi&months=6`],
   });
 
   const handleSearch = async () => {
@@ -252,7 +262,12 @@ export default function Policy() {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        >
           {/* Sustainability Index */}
           <Card className="lg:col-span-2 p-8">
             <h2 className="text-2xl font-bold mb-6">
@@ -260,7 +275,12 @@ export default function Policy() {
             </h2>
 
             <div className="flex items-center justify-center mb-8">
-              <div className="relative">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                className="relative"
+              >
                 <div className="h-48 w-48 rounded-full border-8 border-primary/20 flex items-center justify-center">
                   <div className="text-center">
                     <div
@@ -280,12 +300,15 @@ export default function Policy() {
                     clipPath: `polygon(0 0, 100% 0, 100% ${sustainabilityScore}%, 0 ${sustainabilityScore}%)`,
                   }}
                 />
-              </div>
+              </motion.div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {metrics.map((metric, index) => (
-                <div
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.4 }}
                   key={index}
                   className="border border-border rounded-lg p-4"
                   data-testid={`metric-${index}`}
@@ -304,7 +327,7 @@ export default function Policy() {
                     <span className="text-lg font-bold">{metric.score}</span>
                   </div>
                   <Progress value={metric.score} className="h-2" />
-                </div>
+                </motion.div>
               ))}
             </div>
           </Card>
@@ -452,7 +475,28 @@ export default function Policy() {
               </div>
             </div>
           </Card>
-        </div>
+
+          {/* Historical Trends Charts */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-3"
+          >
+            <DataChart
+              title="Air Quality Index (AQI) 6-Month Trend"
+              data={historicalAQI}
+              dataKey="value"
+              color="hsl(var(--chart-1))"
+            />
+            <DataChart
+              title="Vegetation Index (NDVI) 6-Month Trend"
+              data={historicalNDVI}
+              dataKey="value"
+              color="hsl(var(--chart-2))"
+            />
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

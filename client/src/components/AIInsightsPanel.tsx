@@ -20,6 +20,7 @@ interface Insight {
 interface AIInsightsPanelProps {
   insights?: Insight[];
   className?: string;
+  onApply?: (insight: Insight) => void;
 }
 
 const severityColors = {
@@ -31,6 +32,7 @@ const severityColors = {
 export function AIInsightsPanel({
   insights = [],
   className = "",
+  onApply,
 }: AIInsightsPanelProps) {
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(
     new Set()
@@ -99,9 +101,9 @@ export function AIInsightsPanel({
                   <Button
                     size="sm"
                     data-testid="button-apply-intervention"
-                    onClick={() =>
-                      console.log("Apply intervention:", insight.id)
-                    }
+                    onClick={() => {
+                      if (onApply) onApply(insight);
+                    }}
                   >
                     Apply Intervention
                   </Button>

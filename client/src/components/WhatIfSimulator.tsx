@@ -23,10 +23,12 @@ export function WhatIfSimulator({
   className = "",
   onChange,
   location = "New York",
+  value,
 }: {
   className?: string;
   onChange?: (activeInterventions: Record<string, number>) => void;
   location?: string;
+  value?: Record<string, number>;
 }) {
   const { toast } = useToast();
   const [simulationResult, setSimulationResult] = useState<any>(null);
@@ -139,6 +141,22 @@ export function WhatIfSimulator({
       onChange(active);
     }
   }, [interventions, onChange]);
+
+  // Sync with external value updates (e.g. from Apply Intervention)
+  useEffect(() => {
+    if (value) {
+      setInterventions((prev) =>
+        prev.map((item) => {
+          const hasExternal = value[item.id] !== undefined;
+          return {
+            ...item,
+            enabled: hasExternal,
+            value: hasExternal ? value[item.id] : item.value,
+          };
+        })
+      );
+    }
+  }, [value]);
 
   return (
     <Card className={`p-6 ${className}`} data-testid="card-simulator">
