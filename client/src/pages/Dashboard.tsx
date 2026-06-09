@@ -39,13 +39,19 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
   "delhi": [28.6139, 77.209],
   "cairo": [30.0444, 31.2357],
   "rio de janeiro": [-22.9068, -43.1729],
-  "cape town": [-33.9249, 18.4241]
+  "cape town": [-33.9249, 18.4241],
+  "ahmedabad": [23.0225, 72.5714]
 };
 
 export default function Dashboard() {
   const [selectedLayers, setSelectedLayers] = useState<string[]>(["aqi"]);
-  const [location, setLocation] = useState("New York");
-  const [coordinates, setCoordinates] = useState<[number, number]>([40.7128, -74.006]);
+  const [location, setLocation] = useState(() => {
+    return localStorage.getItem("current_location") || "New York";
+  });
+  const [coordinates, setCoordinates] = useState<[number, number]>(() => {
+    const saved = localStorage.getItem("current_coordinates");
+    return saved ? JSON.parse(saved) : [40.7128, -74.006];
+  });
   const [searchInput, setSearchInput] = useState("");
 
   const { data: metricsData, isLoading: metricsLoading } = useQuery<any>({
@@ -63,11 +69,16 @@ export default function Dashboard() {
     if (!query) return;
 
     setLocation(query);
+    localStorage.setItem("current_location", query);
+
+    let coords: [number, number] = [40.7128, -74.006];
 
     // 1. Try local dictionary first
     const key = query.toLowerCase();
     if (CITY_COORDINATES[key]) {
-      setCoordinates(CITY_COORDINATES[key]);
+      coords = CITY_COORDINATES[key];
+      setCoordinates(coords);
+      localStorage.setItem("current_coordinates", JSON.stringify(coords));
       return;
     }
 
@@ -83,7 +94,9 @@ export default function Dashboard() {
         if (data && data.length > 0) {
           const lat = parseFloat(data[0].lat);
           const lon = parseFloat(data[0].lon);
-          setCoordinates([lat, lon]);
+          coords = [lat, lon];
+          setCoordinates(coords);
+          localStorage.setItem("current_coordinates", JSON.stringify(coords));
           return;
         }
       }
@@ -98,7 +111,9 @@ export default function Dashboard() {
     }
     const lat = 40.7128 + (hash % 100) / 500;
     const lon = -74.006 + ((hash >> 8) % 100) / 500;
-    setCoordinates([lat, lon]);
+    coords = [lat, lon];
+    setCoordinates(coords);
+    localStorage.setItem("current_coordinates", JSON.stringify(coords));
   };
 
   const getStatus = (value: number, metric: string): "good" | "warning" | "critical" => {

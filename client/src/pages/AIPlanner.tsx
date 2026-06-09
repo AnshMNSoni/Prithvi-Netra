@@ -4,19 +4,41 @@ import { AIChatPanel } from "@/components/AIChatPanel";
 import { MapView } from "@/components/MapView";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Share2 } from "lucide-react";
+import { Save, Share2, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const CITY_COORDINATES: Record<string, [number, number]> = {
+  "new york": [40.7128, -74.006],
+  "london": [51.5074, -0.1278],
+  "tokyo": [35.6762, 139.6503],
+  "paris": [48.8566, 2.3522],
+  "sydney": [-33.8688, 151.2093],
+  "mumbai": [19.076, 72.8777],
+  "delhi": [28.6139, 77.209],
+  "cairo": [30.0444, 31.2357],
+  "rio de janeiro": [-22.9068, -43.1729],
+  "cape town": [-33.9249, 18.4241],
+  "ahmedabad": [23.0225, 72.5714]
+};
+
 export default function AIPlanner() {
-  const [location, setLocation] = useState("New York");
+  const [location, setLocation] = useState(() => {
+    return localStorage.getItem("current_location") || "New York";
+  });
+  const [coordinates, setCoordinates] = useState<[number, number]>(() => {
+    const saved = localStorage.getItem("current_coordinates");
+    return saved ? JSON.parse(saved) : [40.7128, -74.006];
+  });
+  const [searchInput, setSearchInput] = useState("");
   const [interventions, setInterventions] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const { data: metricsData } = useQuery<any>({
-    queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}`],
+    queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}&lat=${coordinates[0]}&lon=${coordinates[1]}`],
   });
 
   const { data: insightsResponse, refetch: refetchInsights } = useQuery<any>({
@@ -38,6 +60,58 @@ export default function AIPlanner() {
         .catch((err) => console.error("Error fetching insights:", err));
     }
   }, [metricsData, location]);
+
+  const handleSearch = async () => {
+    const query = searchInput.trim();
+    if (!query) return;
+
+    setLocation(query);
+    localStorage.setItem("current_location", query);
+
+    let coords: [number, number] = [40.7128, -74.006];
+
+    // 1. Try local dictionary first
+    const key = query.toLowerCase();
+    if (CITY_COORDINATES[key]) {
+      coords = CITY_COORDINATES[key];
+      setCoordinates(coords);
+      localStorage.setItem("current_coordinates", JSON.stringify(coords));
+      return;
+    }
+
+    // 2. Try Nominatim Geocoding API
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+        headers: {
+          "User-Agent": "Prithvi-Netra-Urban-Planner"
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          coords = [lat, lon];
+          setCoordinates(coords);
+          localStorage.setItem("current_coordinates", JSON.stringify(coords));
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Geocoding API failed, using hash fallback:", e);
+    }
+
+    // 3. Fallback: generate pseudo-random coordinates deterministically based on hash
+    let hash = 0;
+    for (let i = 0; i < query.length; i++) {
+      hash = query.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const lat = 40.7128 + (hash % 100) / 500;
+    const lon = -74.006 + ((hash >> 8) % 100) / 500;
+    coords = [lat, lon];
+    setCoordinates(coords);
+    localStorage.setItem("current_coordinates", JSON.stringify(coords));
+  };
 
   const mockInsights = insightsResponse?.insights || [
     {
@@ -93,19 +167,48 @@ export default function AIPlanner() {
         </div>
       </div>
 
+      {/* Search & Controls Bar */}
+      <div className="border-b border-border bg-card/30 backdrop-blur-md">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex-1 max-w-md">
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search location..."
+                    className="pl-10"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    data-testid="input-search-location"
+                  />
+                </div>
+                <Button onClick={handleSearch} data-testid="button-search">
+                  Search
+                </Button>
+              </div>
+            </div>
+            <div className="text-sm font-semibold text-muted-foreground font-mono bg-muted/30 px-3 py-1.5 rounded-lg border border-border">
+              Location: {location} ({coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)})
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-6">
         <Tabs defaultValue="simulator" className="w-full">
-          <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap md:justify-center bg-muted/50 p-1 rounded-lg">
-            <TabsTrigger value="simulator" data-testid="tab-simulator" className="flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-muted/50 p-1 rounded-lg h-auto">
+            <TabsTrigger value="simulator" data-testid="tab-simulator" className="w-full">
               What-If Simulator
             </TabsTrigger>
-            <TabsTrigger value="chat" data-testid="tab-chat" className="flex-shrink-0">
+            <TabsTrigger value="chat" data-testid="tab-chat" className="w-full">
               Ask Prithvi AI
             </TabsTrigger>
-            <TabsTrigger value="insights" data-testid="tab-insights" className="flex-shrink-0">
+            <TabsTrigger value="insights" data-testid="tab-insights" className="w-full">
               AI Insights
             </TabsTrigger>
-            <TabsTrigger value="comparison" data-testid="tab-comparison" className="flex-shrink-0">
+            <TabsTrigger value="comparison" data-testid="tab-comparison" className="w-full">
               Scenario Comparison
             </TabsTrigger>
           </TabsList>
@@ -118,7 +221,7 @@ export default function AIPlanner() {
               <Card className="lg:col-span-3 p-0 overflow-hidden">
                 <div className="h-[350px] md:h-[600px]">
                   <MapView
-                    center={[40.7128, -74.006]}
+                    center={coordinates}
                     metrics={metricsData}
                     simulationInterventions={interventions}
                     showPlanningZones={true}
@@ -149,7 +252,7 @@ export default function AIPlanner() {
               <Card className="lg:col-span-3 p-0 overflow-hidden">
                 <div className="h-[350px] md:h-[600px]">
                   <MapView
-                    center={[40.7128, -74.006]}
+                    center={coordinates}
                     metrics={metricsData}
                     showPlanningZones={true}
                   />

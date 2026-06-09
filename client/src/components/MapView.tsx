@@ -177,62 +177,123 @@ export function MapView({
 
     overlaysGroup.clearLayers();
 
-    const centerLatLng = L.latLng(center[0], center[1]);
+    const lat = center[0];
+    const lon = center[1];
 
-    // 1. Air Quality Layer (AQI)
+    // 1. Air Quality Layer (AQI) - Draw scattered AQI hotspots
     if (activeLayers.includes("aqi")) {
       const aqi = metrics.airQuality || 50;
       let aqiColor = "hsl(var(--chart-2))"; // Good
       if (aqi > 100) aqiColor = "hsl(var(--destructive))"; // Critical
       else if (aqi > 50) aqiColor = "hsl(var(--chart-3))"; // Warning
 
-      L.circle(centerLatLng, {
-        radius: 3000,
+      // Center hotspot
+      L.circle(L.latLng(lat, lon), {
+        radius: 2000,
         fillColor: aqiColor,
         fillOpacity: 0.15,
         color: aqiColor,
         weight: 1.5,
       }).addTo(overlaysGroup);
+
+      // Nearby place 1: Traffic/Industrial Corridor (North-East)
+      L.circle(L.latLng(lat + 0.007, lon + 0.012), {
+        radius: 1500,
+        fillColor: aqiColor,
+        fillOpacity: 0.1,
+        color: aqiColor,
+        weight: 1,
+      }).addTo(overlaysGroup);
+
+      // Nearby place 2: Residential Area (South-West)
+      L.circle(L.latLng(lat - 0.011, lon - 0.008), {
+        radius: 1200,
+        fillColor: aqiColor,
+        fillOpacity: 0.12,
+        color: aqiColor,
+        weight: 1,
+      }).addTo(overlaysGroup);
     }
 
-    // 2. Vegetation Index Layer (NDVI)
+    // 2. Vegetation Index Layer (NDVI) - Draw scattered forest/park boundaries
     if (activeLayers.includes("ndvi")) {
       const ndvi = metrics.vegetationIndex || 0.5;
       const ndviColor = "hsl(var(--chart-2))";
-      // Size proportional to green index
-      const radius = 2000 + ndvi * 2000;
-      L.circle(centerLatLng, {
-        radius,
+      const baseRadius = 1500 + ndvi * 1500;
+
+      // Nearby Park 1: North-West reserve
+      L.circle(L.latLng(lat + 0.012, lon - 0.010), {
+        radius: baseRadius,
         fillColor: ndviColor,
-        fillOpacity: Math.min(0.3, ndvi * 0.4),
+        fillOpacity: Math.min(0.25, ndvi * 0.3),
+        color: ndviColor,
+        weight: 1.5,
+      }).addTo(overlaysGroup);
+
+      // Nearby Park 2: South-East greenbelt
+      L.circle(L.latLng(lat - 0.008, lon + 0.014), {
+        radius: baseRadius * 0.7,
+        fillColor: ndviColor,
+        fillOpacity: Math.min(0.2, ndvi * 0.25),
         color: ndviColor,
         weight: 1.5,
       }).addTo(overlaysGroup);
     }
 
-    // 3. Temperature Layer (Heat Island)
+    // 3. Temperature Layer (Urban Heat Pockets)
     if (activeLayers.includes("temp")) {
       const temp = metrics.temperature || 25;
       const heatColor = "hsl(var(--chart-3))";
-      const opacity = Math.max(0.1, Math.min(0.4, (temp - 15) / 30));
-      L.circle(centerLatLng, {
-        radius: 4000,
+      const opacity = Math.max(0.1, Math.min(0.35, (temp - 15) / 35));
+
+      // Heat Pocket 1: Commercial Downtown (South-East)
+      L.circle(L.latLng(lat - 0.005, lon + 0.004), {
+        radius: 2500,
         fillColor: heatColor,
         fillOpacity: opacity,
         color: heatColor,
         weight: 1,
       }).addTo(overlaysGroup);
+
+      // Heat Pocket 2: Residential Density (North-West)
+      L.circle(L.latLng(lat + 0.009, lon - 0.006), {
+        radius: 1800,
+        fillColor: heatColor,
+        fillOpacity: opacity * 0.8,
+        color: heatColor,
+        weight: 1,
+      }).addTo(overlaysGroup);
     }
 
-    // 4. Water Quality Layer
+    // 4. Water Quality Layer - Draw nearby water bodies (lakes/rivers)
     if (activeLayers.includes("water")) {
       const waterColor = "hsl(var(--chart-4))";
-      L.circle(centerLatLng, {
-        radius: 2500,
+
+      // Nearby Lake: West-North-West
+      L.circle(L.latLng(lat + 0.005, lon - 0.015), {
+        radius: 1200,
         fillColor: waterColor,
         fillOpacity: 0.2,
         color: waterColor,
         weight: 1.5,
+      }).addTo(overlaysGroup);
+
+      // River Segment 1
+      L.circle(L.latLng(lat - 0.012, lon - 0.003), {
+        radius: 700,
+        fillColor: waterColor,
+        fillOpacity: 0.18,
+        color: waterColor,
+        weight: 1,
+      }).addTo(overlaysGroup);
+
+      // River Segment 2
+      L.circle(L.latLng(lat - 0.015, lon + 0.006), {
+        radius: 700,
+        fillColor: waterColor,
+        fillOpacity: 0.18,
+        color: waterColor,
+        weight: 1,
       }).addTo(overlaysGroup);
     }
 
