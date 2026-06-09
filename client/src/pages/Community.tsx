@@ -12,9 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Community() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [clickedCoords, setClickedCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const { toast } = useToast();
 
-  const { data: reports = [] } = useQuery({
+  const { data: reports = [] } = useQuery<any[]>({
     queryKey: ["/api/community/reports"],
   });
 
@@ -26,6 +27,7 @@ export default function Community() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/reports"] });
       setDialogOpen(false);
+      setClickedCoords(null);
       toast({
         title: "Report submitted",
         description: "Your community report has been submitted successfully.",
@@ -56,7 +58,7 @@ export default function Community() {
     return `${diffDays} days ago`;
   };
 
-  const displayReports = reports.length > 0 ? reports : [
+  const displayReports: any[] = reports.length > 0 ? reports : [
     {
       id: "1",
       category: "Air Quality",
@@ -65,8 +67,8 @@ export default function Community() {
       createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
       upvotes: 24,
       status: "under-review",
-      latitude: null,
-      longitude: null,
+      latitude: 40.7306,
+      longitude: -73.9352,
     },
     {
       id: "2",
@@ -76,8 +78,8 @@ export default function Community() {
       createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
       upvotes: 15,
       status: "in-progress",
-      latitude: null,
-      longitude: null,
+      latitude: 40.7829,
+      longitude: -73.9654,
     },
     {
       id: "3",
@@ -87,8 +89,8 @@ export default function Community() {
       createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
       upvotes: 32,
       status: "resolved",
-      latitude: null,
-      longitude: null,
+      latitude: 40.7061,
+      longitude: -73.9969,
     },
   ];
 
@@ -96,6 +98,20 @@ export default function Community() {
     "under-review": "bg-chart-3/10 text-chart-3 border-chart-3/20",
     "in-progress": "bg-chart-1/10 text-chart-1 border-chart-1/20",
     "resolved": "bg-chart-2/10 text-chart-2 border-chart-2/20",
+  };
+
+  const mapMarkers = displayReports.map((report: any) => ({
+    id: report.id,
+    latitude: report.latitude || 40.7128,
+    longitude: report.longitude || -74.006,
+    category: report.category,
+    description: report.description,
+    title: report.location,
+  }));
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setClickedCoords({ latitude: lat, longitude: lng });
+    setDialogOpen(true);
   };
 
   return (
@@ -109,7 +125,10 @@ export default function Community() {
                 Report issues and engage with your community
               </p>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) setClickedCoords(null);
+            }}>
               <DialogTrigger asChild>
                 <Button data-testid="button-new-report">
                   <Plus className="h-4 w-4 mr-2" />
@@ -118,7 +137,10 @@ export default function Community() {
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <h2 className="text-2xl font-bold mb-6">Report an Issue</h2>
-                <CommunityReport onSubmit={(data) => createReportMutation.mutate(data)} />
+                <CommunityReport 
+                  prefilledCoords={clickedCoords}
+                  onSubmit={(data) => createReportMutation.mutate(data)} 
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -129,11 +151,14 @@ export default function Community() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 p-0 overflow-hidden">
             <div className="h-[500px]">
-              <MapView />
+              <MapView 
+                markers={mapMarkers}
+                onMapClick={handleMapClick}
+              />
             </div>
-            <div className="p-4 border-t border-border">
+            <div className="p-4 border-t border-border bg-card">
               <p className="text-sm text-muted-foreground">
-                Click markers to view reported issues on the map
+                Click the map to drop a pin and report an issue at that location, or click markers to view reported issues.
               </p>
             </div>
           </Card>
@@ -142,7 +167,7 @@ export default function Community() {
             <Card className="p-4">
               <h3 className="font-semibold mb-4">Recent Reports</h3>
               <div className="space-y-3">
-                {displayReports.map((report) => (
+                {displayReports.map((report: any) => (
                   <div
                     key={report.id}
                     className="border border-border rounded-lg p-4 hover-elevate cursor-pointer"

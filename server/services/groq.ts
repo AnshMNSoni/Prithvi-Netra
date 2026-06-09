@@ -1,7 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 interface EnvironmentalData {
   airQuality: number;
   vegetationIndex: number;
@@ -26,9 +22,15 @@ interface SimulationPrediction {
 }
 
 export class AIService {
-  private model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  private apiKey = process.env.GROQ_API_KEY || "";
+  private model = "llama-3.3-70b-versatile";
 
   async generateInsights(data: EnvironmentalData): Promise<AIInsight[]> {
+    if (!this.apiKey) {
+      console.log("No GROQ_API_KEY found, using fallback insights");
+      return this.getFallbackInsights(data);
+    }
+
     try {
       const prompt = `As an urban planning AI assistant, analyze this environmental data for ${data.location}:
       
@@ -55,16 +57,30 @@ Respond ONLY with a valid JSON object in this exact format:
   ]
 }`;
 
-      const result = await this.model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.2,
+        }),
+      });
 
-      if (!text) throw new Error("No response from Gemini");
+      if (!response.ok) {
+        throw new Error(`Groq API returned status ${response.status}`);
+      }
 
-      // Clean the response to ensure it's valid JSON
-      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      const parsed = JSON.parse(cleanedText);
+      const resBody = await response.json();
+      const text = resBody.choices?.[0]?.message?.content;
+
+      if (!text) throw new Error("No response from Groq");
+
+      const parsed = JSON.parse(text.trim());
       const insights = parsed.insights || parsed.recommendations || [];
 
       return insights.map((insight: any, index: number) => ({
@@ -75,7 +91,7 @@ Respond ONLY with a valid JSON object in this exact format:
         recommendation: insight.recommendation,
       }));
     } catch (error) {
-      console.error("Gemini API error:", error);
+      console.error("Groq API error:", error);
       return this.getFallbackInsights(data);
     }
   }
@@ -125,6 +141,69 @@ Respond ONLY with a valid JSON object in this exact format:
     }
 
     return predictions;
+  }
+
+  async chat(
+    message: string,
+    history: { role: "user" | "model"; content: string }[],
+    metrics?: EnvironmentalData
+  ): Promise<string> {
+    if (!this.apiKey) {
+      return `[Offline Mode] Here is a mock suggestion for ${metrics?.location || "your location"}. To enable real AI chat, configure GROQ_API_KEY in your .env.`;
+    }
+
+    try {
+      const messages = [
+        {
+          role: "system",
+          content: "You are Prithvi AI, a smart urban planner assistant. Answer the user's questions about urban design, environmental issues, and zoning policies based on their city's data."
+        }
+      ];
+
+      // Map history to OpenAI format (Groq uses 'assistant' instead of 'model')
+      history.forEach((h) => {
+        messages.push({
+          role: h.role === "model" ? "assistant" : "user",
+          content: h.content,
+        });
+      });
+
+      let prompt = message;
+      if (metrics) {
+        prompt = `Current environmental data for ${metrics.location || "selected location"}:
+- Air Quality Index: ${metrics.airQuality} AQI
+- Vegetation Index (NDVI): ${metrics.vegetationIndex}
+- Temperature: ${metrics.temperature}°C
+- Water Quality: ${metrics.waterQuality} pH
+
+User Query: ${message}`;
+      }
+
+      messages.push({ role: "user", content: prompt });
+
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages: messages,
+          max_tokens: 800,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Groq Chat API returned status ${response.status}`);
+      }
+
+      const resBody = await response.json();
+      return resBody.choices?.[0]?.message?.content || "I couldn't generate a response.";
+    } catch (error) {
+      console.error("Groq Chat API error:", error);
+      return "I'm sorry, I encountered an issue connecting to my brain. How else can I assist with your urban planning?";
+    }
   }
 
   private getFallbackInsights(data: EnvironmentalData): AIInsight[] {

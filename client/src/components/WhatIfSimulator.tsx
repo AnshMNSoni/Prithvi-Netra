@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Trees, Building2, Droplet, Zap, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +19,13 @@ interface Intervention {
   impact: string;
 }
 
-export function WhatIfSimulator({ className = "" }: { className?: string }) {
+export function WhatIfSimulator({
+  className = "",
+  onChange,
+}: {
+  className?: string;
+  onChange?: (activeInterventions: Record<string, number>) => void;
+}) {
   const { toast } = useToast();
   const [simulationResult, setSimulationResult] = useState<any>(null);
   const [interventions, setInterventions] = useState<Intervention[]>([
@@ -117,6 +123,18 @@ export function WhatIfSimulator({ className = "" }: { className?: string }) {
       });
     },
   });
+
+  useEffect(() => {
+    if (onChange) {
+      const active: Record<string, number> = {};
+      interventions.forEach((int) => {
+        if (int.enabled) {
+          active[int.id] = int.value;
+        }
+      });
+      onChange(active);
+    }
+  }, [interventions, onChange]);
 
   return (
     <Card className={`p-6 ${className}`} data-testid="card-simulator">

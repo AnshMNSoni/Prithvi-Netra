@@ -1,5 +1,6 @@
 import { AIInsightsPanel } from "@/components/AIInsightsPanel";
 import { WhatIfSimulator } from "@/components/WhatIfSimulator";
+import { AIChatPanel } from "@/components/AIChatPanel";
 import { MapView } from "@/components/MapView";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AIPlanner() {
   const [location, setLocation] = useState("New York");
+  const [interventions, setInterventions] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
-  const { data: metricsData } = useQuery({
+  const { data: metricsData } = useQuery<any>({
     queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}`],
   });
 
-  const { data: insightsResponse, refetch: refetchInsights } = useQuery({
+  const { data: insightsResponse, refetch: refetchInsights } = useQuery<any>({
     queryKey: ["/api/ai/insights", location, metricsData],
     enabled: false,
   });
@@ -70,19 +72,19 @@ export default function AIPlanner() {
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card/50 backdrop-blur-lg">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">AI Planning Assistant</h1>
               <p className="text-muted-foreground">
                 AI-powered simulations and recommendations for urban development
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" data-testid="button-save-scenario">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button variant="outline" data-testid="button-save-scenario" className="flex-1 sm:flex-initial justify-center">
                 <Save className="h-4 w-4 mr-2" />
                 Save Scenario
               </Button>
-              <Button data-testid="button-share-scenario">
+              <Button data-testid="button-share-scenario" className="flex-1 sm:flex-initial justify-center">
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
@@ -93,14 +95,17 @@ export default function AIPlanner() {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs defaultValue="simulator" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="simulator" data-testid="tab-simulator">
+          <TabsList className="mb-6 w-full justify-start overflow-x-auto flex-nowrap md:justify-center bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger value="simulator" data-testid="tab-simulator" className="flex-shrink-0">
               What-If Simulator
             </TabsTrigger>
-            <TabsTrigger value="insights" data-testid="tab-insights">
+            <TabsTrigger value="chat" data-testid="tab-chat" className="flex-shrink-0">
+              Ask Prithvi AI
+            </TabsTrigger>
+            <TabsTrigger value="insights" data-testid="tab-insights" className="flex-shrink-0">
               AI Insights
             </TabsTrigger>
-            <TabsTrigger value="comparison" data-testid="tab-comparison">
+            <TabsTrigger value="comparison" data-testid="tab-comparison" className="flex-shrink-0">
               Scenario Comparison
             </TabsTrigger>
           </TabsList>
@@ -108,11 +113,16 @@ export default function AIPlanner() {
           <TabsContent value="simulator">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               <div className="lg:col-span-2">
-                <WhatIfSimulator />
+                <WhatIfSimulator onChange={setInterventions} />
               </div>
               <Card className="lg:col-span-3 p-0 overflow-hidden">
-                <div className="h-[600px]">
-                  <MapView />
+                <div className="h-[350px] md:h-[600px]">
+                  <MapView
+                    center={[40.7128, -74.006]}
+                    metrics={metricsData}
+                    simulationInterventions={interventions}
+                    showPlanningZones={true}
+                  />
                 </div>
                 <div className="p-4 border-t border-border bg-card">
                   <div className="flex items-center justify-between">
@@ -126,6 +136,28 @@ export default function AIPlanner() {
                       Apply Changes
                     </Button>
                   </div>
+                </div>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="chat">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              <div className="lg:col-span-2">
+                <AIChatPanel location={location} metrics={metricsData} />
+              </div>
+              <Card className="lg:col-span-3 p-0 overflow-hidden">
+                <div className="h-[350px] md:h-[600px]">
+                  <MapView
+                    center={[40.7128, -74.006]}
+                    metrics={metricsData}
+                    showPlanningZones={true}
+                  />
+                </div>
+                <div className="p-4 border-t border-border bg-card">
+                  <p className="text-xs text-muted-foreground">
+                    Ask Prithvi AI about urban planning ideas, recommendations, or how to mitigate environmental issues for this city.
+                  </p>
                 </div>
               </Card>
             </div>

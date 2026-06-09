@@ -29,25 +29,76 @@ import {
 } from "@/components/ui/popover";
 import { useQuery } from "@tanstack/react-query";
 
+const CITY_COORDINATES: Record<string, [number, number]> = {
+  "new york": [40.7128, -74.006],
+  "london": [51.5074, -0.1278],
+  "tokyo": [35.6762, 139.6503],
+  "paris": [48.8566, 2.3522],
+  "sydney": [-33.8688, 151.2093],
+  "mumbai": [19.076, 72.8777],
+  "delhi": [28.6139, 77.209],
+  "cairo": [30.0444, 31.2357],
+  "rio de janeiro": [-22.9068, -43.1729],
+  "cape town": [-33.9249, 18.4241]
+};
+
 export default function Dashboard() {
   const [selectedLayers, setSelectedLayers] = useState<string[]>(["aqi"]);
   const [location, setLocation] = useState("New York");
+  const [coordinates, setCoordinates] = useState<[number, number]>([40.7128, -74.006]);
   const [searchInput, setSearchInput] = useState("");
 
-  const { data: metricsData, isLoading: metricsLoading } = useQuery({
-    queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}`],
+  const { data: metricsData, isLoading: metricsLoading } = useQuery<any>({
+    queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}&lat=${coordinates[0]}&lon=${coordinates[1]}`],
     enabled: !!location,
   });
 
-  const { data: chartData } = useQuery({
+  const { data: chartData } = useQuery<any>({
     queryKey: [`/api/nasa/historical?location=${encodeURIComponent(location)}&metric=aqi&months=6`],
     enabled: !!location,
   });
 
-  const handleSearch = () => {
-    if (searchInput.trim()) {
-      setLocation(searchInput.trim());
+  const handleSearch = async () => {
+    const query = searchInput.trim();
+    if (!query) return;
+
+    setLocation(query);
+
+    // 1. Try local dictionary first
+    const key = query.toLowerCase();
+    if (CITY_COORDINATES[key]) {
+      setCoordinates(CITY_COORDINATES[key]);
+      return;
     }
+
+    // 2. Try Nominatim Geocoding API
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+        headers: {
+          "User-Agent": "Prithvi-Netra-Urban-Planner"
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lon = parseFloat(data[0].lon);
+          setCoordinates([lat, lon]);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Geocoding API failed, using hash fallback:", e);
+    }
+
+    // 3. Fallback: generate pseudo-random coordinates deterministically based on hash
+    let hash = 0;
+    for (let i = 0; i < query.length; i++) {
+      hash = query.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const lat = 40.7128 + (hash % 100) / 500;
+    const lon = -74.006 + ((hash >> 8) % 100) / 500;
+    setCoordinates([lat, lon]);
   };
 
   const getStatus = (value: number, metric: string): "good" | "warning" | "critical" => {
@@ -210,7 +261,11 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2 p-0 overflow-hidden">
             <div className="h-[500px]">
-              <MapView />
+              <MapView
+                center={coordinates}
+                activeLayers={selectedLayers}
+                metrics={metricsData}
+              />
             </div>
             <div className="p-4 border-t border-border">
               <div className="flex flex-wrap gap-2">

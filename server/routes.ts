@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { nasaService } from "./services/nasa";
-import { aiService } from "./services/gemini";
+import { aiService } from "./services/groq";
 import { insertCommunityReportSchema, insertSimulationSchema } from "@shared/schema";
 import jsPDF from "jspdf";
 
@@ -204,6 +204,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename=urban-planning-report.pdf');
       res.send(pdfBuffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      const { message, history, metrics } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      const responseText = await aiService.chat(message, history || [], metrics);
+      res.json({ response: responseText });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

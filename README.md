@@ -58,7 +58,7 @@ Prithvi Netra is a web-based platform that enables users to analyze, visualize, 
 
 3️⃣ Data Sources: NASA Earth Observation datasets (temperature, NDVI, air quality, etc.)
 
-4️⃣ LLM: Gemini API
+4️⃣ LLM: Groq API
 
 5️⃣ Deployment: Render
 

@@ -10,11 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface CommunityReportProps {
-  onSubmit?: (data: ReportData) => void;
+  onSubmit?: (data: ReportData & { latitude?: number; longitude?: number }) => void;
   className?: string;
+  prefilledCoords?: { latitude: number; longitude: number } | null;
 }
 
 interface ReportData {
@@ -27,6 +28,7 @@ interface ReportData {
 export function CommunityReport({
   onSubmit,
   className = "",
+  prefilledCoords = null,
 }: CommunityReportProps) {
   const [formData, setFormData] = useState<ReportData>({
     category: "",
@@ -35,10 +37,23 @@ export function CommunityReport({
   });
   const [photo, setPhoto] = useState<File | null>(null);
 
+  useEffect(() => {
+    if (prefilledCoords) {
+      setFormData((prev) => ({
+        ...prev,
+        location: `Coordinates: ${prefilledCoords.latitude.toFixed(4)}, ${prefilledCoords.longitude.toFixed(4)}`,
+      }));
+    }
+  }, [prefilledCoords]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Report submitted:", formData);
-    onSubmit?.(formData);
+    console.log("Report submitted:", formData, prefilledCoords);
+    onSubmit?.({
+      ...formData,
+      latitude: prefilledCoords?.latitude,
+      longitude: prefilledCoords?.longitude,
+    });
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +101,12 @@ export function CommunityReport({
           }
           data-testid="input-location"
         />
+        {prefilledCoords && (
+          <div className="bg-primary/5 p-2 rounded border border-primary/20 text-xs flex justify-between items-center text-muted-foreground font-mono mt-1">
+            <span>Lat: {prefilledCoords.latitude.toFixed(6)}</span>
+            <span>Lng: {prefilledCoords.longitude.toFixed(6)}</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

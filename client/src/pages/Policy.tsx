@@ -15,6 +15,21 @@ export default function Policy() {
     queryKey: [`/api/nasa/metrics?location=${encodeURIComponent(location)}`],
   });
 
+  const { data: insightsData } = useQuery({
+    queryKey: ["/api/ai/insights", location, metricsData],
+    queryFn: async () => {
+      if (!metricsData) return null;
+      const res = await fetch("/api/ai/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location, metrics: metricsData }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch AI insights");
+      return res.json();
+    },
+    enabled: !!metricsData,
+  });
+
   const generateReport = async () => {
     if (!metricsData) {
       toast({
@@ -34,7 +49,7 @@ export default function Policy() {
           title: `Urban Planning Report - ${location}`,
           data: {
             metrics: metricsData,
-            insights: [],
+            insights: insightsData?.insights || [],
           },
         }),
       });
