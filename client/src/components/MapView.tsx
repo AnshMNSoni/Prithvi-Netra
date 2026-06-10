@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useTheme } from "@/components/ThemeProvider";
 
 // Fix Leaflet Default Icon issue in Vite/React builds
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -56,8 +57,10 @@ export function MapView({
   simulationInterventions,
   showPlanningZones = false,
 }: MapViewProps) {
+  const { theme } = useTheme();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const overlaysGroupRef = useRef<L.LayerGroup | null>(null);
   const clickMarkerRef = useRef<L.Marker | null>(null);
@@ -72,14 +75,17 @@ export function MapView({
       zoomControl: true,
     });
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    const layer = L.tileLayer(
+      theme === "dark"
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
       {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
       }
     ).addTo(map);
 
+    tileLayerRef.current = layer;
     markersGroupRef.current = L.layerGroup().addTo(map);
     overlaysGroupRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
@@ -113,6 +119,17 @@ export function MapView({
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Update Tile Layer URL when theme changes
+  useEffect(() => {
+    if (tileLayerRef.current) {
+      tileLayerRef.current.setUrl(
+        theme === "dark"
+          ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+      );
+    }
+  }, [theme]);
 
   // Update center and pan map smoothly when center changes
   useEffect(() => {
