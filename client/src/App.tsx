@@ -14,6 +14,9 @@ import Policy from "@/pages/Policy";
 import About from "@/pages/About";
 import NotFound from "@/pages/not-found";
 
+import { useState, useEffect } from "react";
+import { Preloader } from "@/components/Preloader";
+
 function Router() {
   return (
     <Switch>
@@ -29,19 +32,36 @@ function Router() {
 }
 
 function App() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <div className="min-h-screen flex flex-col bg-background text-foreground">
-            <Navbar />
-            <main className="flex-1">
-              <Router />
-            </main>
-            <Footer />
+        {loading ? (
+          <div className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50">
+            <div className="text-center space-y-4">
+              <Preloader />
+            </div>
           </div>
-          <Toaster />
-        </TooltipProvider>
+        ) : (
+          <TooltipProvider>
+            <div className="min-h-screen flex flex-col bg-background text-foreground">
+              <Navbar />
+              <main className="flex-1">
+                <Router />
+              </main>
+              <Footer />
+            </div>
+            <Toaster />
+          </TooltipProvider>
+        )}
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Trees, Building2, Droplet, Zap, RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -32,13 +32,14 @@ export function WhatIfSimulator({
 }) {
   const { toast } = useToast();
   const [simulationResult, setSimulationResult] = useState<any>(null);
+  const lastSentValueRef = useRef<Record<string, number>>({});
   const [interventions, setInterventions] = useState<Intervention[]>([
     {
       id: "trees",
       label: "Tree Coverage",
       icon: <Trees className="h-5 w-5" />,
       value: 20,
-      enabled: true,
+      enabled: false,
       unit: "% increase",
       impact: "+0.08 NDVI",
     },
@@ -56,7 +57,7 @@ export function WhatIfSimulator({
       label: "Water Bodies",
       icon: <Droplet className="h-5 w-5" />,
       value: 10,
-      enabled: true,
+      enabled: false,
       unit: "% area",
       impact: "-2°C heat",
     },
@@ -139,14 +140,23 @@ export function WhatIfSimulator({
         }
       });
       
-      // Prevent infinite rendering loop by comparing next active state with the value prop
-      const activeKeys = Object.keys(active);
-      const valueKeys = value ? Object.keys(value) : [];
+      // Update ref and notify parent
+      lastSentValueRef.current = active;
+      onChange(active);
+    }
+  }, [interventions, onChange]);
+
+  // Sync with external value updates (e.g. from Apply Intervention)
+  useEffect(() => {
+    if (value) {
+      // Check if value is different from the last value sent by the child
+      const activeKeys = Object.keys(lastSentValueRef.current);
+      const valueKeys = Object.keys(value);
       let isDifferent = activeKeys.length !== valueKeys.length;
       
       if (!isDifferent) {
         for (const key of activeKeys) {
-          if (active[key] !== value?.[key]) {
+          if (lastSentValueRef.current[key] !== value[key]) {
             isDifferent = true;
             break;
           }
@@ -154,33 +164,16 @@ export function WhatIfSimulator({
       }
       
       if (isDifferent) {
-        onChange(active);
-      }
-    }
-  }, [interventions, onChange, value]);
-
-  // Sync with external value updates (e.g. from Apply Intervention)
-  useEffect(() => {
-    if (value) {
-      let hasChange = false;
-      const nextInterventions = interventions.map((item) => {
-        const hasExternal = value[item.id] !== undefined;
-        const targetValue = hasExternal ? value[item.id] : item.value;
-        const targetEnabled = hasExternal;
-        
-        if (item.enabled !== targetEnabled || item.value !== targetValue) {
-          hasChange = true;
-        }
-        
-        return {
-          ...item,
-          enabled: targetEnabled,
-          value: targetValue,
-        };
-      });
-
-      if (hasChange) {
-        setInterventions(nextInterventions);
+        setInterventions((prev) =>
+          prev.map((item) => {
+            const hasExternal = value[item.id] !== undefined;
+            return {
+              ...item,
+              enabled: hasExternal,
+              value: hasExternal ? value[item.id] : item.value,
+            };
+          })
+        );
       }
     }
   }, [value]);

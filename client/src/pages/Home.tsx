@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[85vh] md:h-[70vh] flex items-center justify-center py-20 md:py-0">
         <style>{`
           @keyframes rotate-earth {
             from {
