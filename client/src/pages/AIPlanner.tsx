@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Share2, Search } from "lucide-react";
+import { Save, Share2, Search, SlidersHorizontal, Bot, Sparkles, GitCompare } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { FloatingDock } from "@/components/kaif-ui/floating-dock";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +39,7 @@ export default function AIPlanner() {
   });
   const [searchInput, setSearchInput] = useState("");
   const [interventions, setInterventions] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState("simulator");
   const { toast } = useToast();
 
   const { data: metricsData } = useQuery<any>({
@@ -216,8 +219,10 @@ export default function AIPlanner() {
 
     toast({
       title: "Intervention Configured",
-      description: `Configured ${targetKey} to ${val}% in the simulator sandbox. Go to "What-If Simulator" tab to view it!`,
+      description: `Configured ${targetKey} to ${val}% in the simulator sandbox. Switch to "What-If Simulator" to view it!`,
     });
+
+    setActiveTab("simulator");
   };
 
   const handleSearch = async () => {
@@ -337,23 +342,40 @@ export default function AIPlanner() {
           </div>
         </div>
       </div>
-
-      <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="simulator" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6 bg-muted/50 p-1 rounded-lg h-auto">
-            <TabsTrigger value="simulator" data-testid="tab-simulator" className="w-full">
-              What-If Simulator
-            </TabsTrigger>
-            <TabsTrigger value="chat" data-testid="tab-chat" className="w-full">
-              Ask Prithvi AI
-            </TabsTrigger>
-            <TabsTrigger value="insights" data-testid="tab-insights" className="w-full">
-              AI Insights
-            </TabsTrigger>
-            <TabsTrigger value="comparison" data-testid="tab-comparison" className="w-full">
-              Scenario Comparison
-            </TabsTrigger>
-          </TabsList>
+      <div className="container mx-auto px-4 py-6 pb-36">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center justify-center relative">
+            <FloatingDock
+              desktopClassName="fixed bottom-6 left-1/2 -translate-x-1/2 z-[2000]"
+              mobileClassName="fixed bottom-6 right-6 z-[2000]"
+              navigationItems={[
+                {
+                  label: "What-If Simulator",
+                  icon: <SlidersHorizontal className="h-full w-full" />,
+                  onClick: () => setActiveTab("simulator"),
+                  active: activeTab === "simulator",
+                },
+                {
+                  label: "Ask Prithvi AI",
+                  icon: <Bot className="h-full w-full" />,
+                  onClick: () => setActiveTab("chat"),
+                  active: activeTab === "chat",
+                },
+                {
+                  label: "AI Insights",
+                  icon: <Sparkles className="h-full w-full" />,
+                  onClick: () => setActiveTab("insights"),
+                  active: activeTab === "insights",
+                },
+                {
+                  label: "Scenario Comparison",
+                  icon: <GitCompare className="h-full w-full" />,
+                  onClick: () => setActiveTab("comparison"),
+                  active: activeTab === "comparison",
+                },
+              ]}
+            />
+          </div>
 
           <TabsContent value="simulator">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
