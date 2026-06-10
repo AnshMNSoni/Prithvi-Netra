@@ -28,10 +28,10 @@ export const FloatingDock = ({
   mobileClassName?: string;
 }) => {
   return (
-    <>
+    <nav role="navigation" aria-label="Planner Views Menu">
       <FloatingDockDesktop items={navigationItems} className={desktopClassName} />
       <FloatingDockMobile items={navigationItems} className={mobileClassName} />
-    </>
+    </nav>
   );
 };
 
@@ -111,14 +111,25 @@ function IconContainer({
 
   const [hovered, setHovered] = useState(false);
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (onClick) onClick();
+    }
+  };
+
   const content = (
     <motion.div
       ref={ref}
       style={{ width, height }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      tabIndex={0}
+      role="button"
+      aria-label={label}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "aspect-square rounded-full flex items-center justify-center relative cursor-pointer border transition-all duration-300",
+        "aspect-square rounded-full flex items-center justify-center relative cursor-pointer border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
           ? "bg-blue-600 border-blue-400 dark:bg-blue-500 dark:border-blue-400 text-white shadow-[0_4px_20px_rgba(59,130,246,0.45)]"
           : "bg-muted border-border hover:bg-muted/80 text-muted-foreground hover:text-foreground"
@@ -147,7 +158,7 @@ function IconContainer({
   );
 
   if (link && link !== "#" && link !== "") {
-    return <a href={link}>{content}</a>;
+    return <a href={link} aria-label={label}>{content}</a>;
   }
   return content;
 }
@@ -190,8 +201,9 @@ const FloatingDockMobile = ({
                     if (item.onClick) item.onClick();
                     setOpen(false);
                   }}
+                  aria-label={item.label}
                   className={cn(
-                    "h-12 w-12 rounded-full flex items-center justify-center border shadow-md transition-colors",
+                    "h-12 w-12 rounded-full flex items-center justify-center border shadow-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     item.active
                       ? "bg-blue-600 border-blue-400 dark:bg-blue-500 dark:border-blue-400 text-white shadow-[0_4px_15px_rgba(59,130,246,0.4)]"
                       : "bg-muted border-border text-muted-foreground"
@@ -206,7 +218,9 @@ const FloatingDockMobile = ({
       </AnimatePresence>
       <button
         onClick={() => setOpen(!open)}
-        className="h-12 w-12 rounded-full bg-card border border-border shadow-lg flex items-center justify-center text-foreground cursor-pointer z-[2020] relative hover-elevate"
+        aria-label="Toggle navigation view menu"
+        aria-expanded={open}
+        className="h-12 w-12 rounded-full bg-card border border-border shadow-lg flex items-center justify-center text-foreground cursor-pointer z-[2020] relative hover-elevate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <Menu className="h-5 w-5" />
       </button>

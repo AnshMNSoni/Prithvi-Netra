@@ -302,151 +302,211 @@ export function MapView({
     const lat = center[0];
     const lon = center[1];
 
+    // Grid Cell Generation Helper
+    const generateGridCells = (centerLat: number, centerLon: number, cellSize = 0.009) => {
+      const cells = [];
+      const rowNames = ["A", "B", "C"];
+      const colNames = ["1", "2", "3"];
+      
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const latOffset = (1 - r) * cellSize;
+          const lonOffset = (c - 1) * cellSize;
+          
+          const cellCenterLat = centerLat + latOffset;
+          const cellCenterLon = centerLon + lonOffset;
+          
+          const latMin = cellCenterLat - cellSize / 2;
+          const latMax = cellCenterLat + cellSize / 2;
+          const lonMin = cellCenterLon - cellSize / 2;
+          const lonMax = cellCenterLon + cellSize / 2;
+          
+          cells.push({
+            name: `${rowNames[r]}${colNames[c]}`,
+            row: r,
+            col: c,
+            bounds: [[latMin, lonMin], [latMax, lonMax]] as L.LatLngBoundsExpression,
+          });
+        }
+      }
+      return cells;
+    };
+
+    const gridCells = generateGridCells(lat, lon, 0.010);
+
+    const aqiFactors = [
+      [0.6,  0.85, 1.25], // Row A
+      [0.75, 1.3,  1.4],  // Row B
+      [0.8,  1.1,  0.55]  // Row C
+    ];
+    
+    const ndviFactors = [
+      [1.2,  0.9,  0.55], // Row A
+      [1.0,  0.35, 0.3],  // Row B
+      [0.9,  0.7,  1.15]  // Row C
+    ];
+    
+    const tempOffsets = [
+      [-2.5, -0.8, 1.8],  // Row A
+      [-1.2, 4.2,  3.5],  // Row B
+      [-0.5, 1.5,  -2.2]  // Row C
+    ];
+
+    const cellDescriptions: Record<string, { aqi: string; ndvi: string; temp: string; type: string }> = {
+      A1: {
+        type: "Nature Reserve & Wetland",
+        aqi: "Minimal local particulate pollution. Active conservation zoning prevents development runoff.",
+        ndvi: "Dense native forest canopy. Highly active biodiversity hub.",
+        temp: "Cool vegetative microclimate. Serves as natural municipal cooling buffer."
+      },
+      A2: {
+        type: "Suburban Neighborhood North",
+        aqi: "Low traffic density. General household metrics display minor winter heating spikes.",
+        ndvi: "Healthy residential gardens and linear parkways. Moderate shading.",
+        temp: "Normal thermal profile. Mild concrete absorption compensated by suburban tree lines."
+      },
+      A3: {
+        type: "Industrial Logistics Zone",
+        aqi: "Heavy freight transport corridor. Heightened soot levels. Buffer tree screen recommended.",
+        ndvi: "Largely concrete footprint. Low leaf canopy cover. Industrial roof greening needed.",
+        temp: "Warm industrial rooftop heat retention. Subject to solar absorption spikes."
+      },
+      B1: {
+        type: "Mixed-Use Suburb West",
+        aqi: "Moderate vehicular traffic emissions. General air conditions within green standards.",
+        ndvi: "Good neighborhood park system. Mixed urban woodlands.",
+        temp: "Favorable thermal distribution. Balanced shade access."
+      },
+      B2: {
+        type: "Downtown Commercial Center",
+        aqi: "Severe vehicle emissions and pedestrian congestion. Recommend street pedestrianization.",
+        ndvi: "Dense concrete canyon footprint. High deficit in parklands. Suggest structural retrofits.",
+        temp: "Critical Heat Island. Severe heat load retention due to asphalt roads and glass glare."
+      },
+      B3: {
+        type: "Commercial Transit East",
+        aqi: "Congested highway junction and freight corridor. High diesel emission index.",
+        ndvi: "Pavement dominated grid cells. Low street-tree survival rates.",
+        temp: "Critical Urban heat accumulation from dense pavement surfaces."
+      },
+      C1: {
+        type: "Suburban Residential South",
+        aqi: "Low traffic influence. Typical suburban household air quality metrics.",
+        ndvi: "Moderate residential tree counts and backyard greenspace.",
+        temp: "Temperate neighborhood zone. Steady cooling profile."
+      },
+      C2: {
+        type: "Commercial District South",
+        aqi: "Heightened commercial hub traffic. Suggestions include active public transit loops.",
+        ndvi: "Low tree coverage. Dominated by parking lots and commercial zoning grids.",
+        temp: "Elevated surface temperature due to expansive black asphalt parking lots."
+      },
+      C3: {
+        type: "Municipal Protective Forest Belt",
+        aqi: "Primacy carbon capture zone. Cleans prevailing wind paths to adjacent residential grids.",
+        ndvi: "Thick municipal protective forest reserve. High local carbon storage.",
+        temp: "Strong local cooling zone. Significant canopy microclimate shade."
+      }
+    };
+
     // 1. Air Quality Layer (AQI) - Draw scattered AQI hotspots
     if (activeLayers.includes("aqi")) {
-      const aqi = metrics.airQuality || 50;
-      let aqiColor = "hsl(var(--chart-2))"; // Good
-      let statusText = "Good (Low concerns)";
-      if (aqi > 100) {
-        aqiColor = "hsl(var(--destructive))"; // Critical
-        statusText = "Critical (Industrial / Traffic Spikes)";
-      } else if (aqi > 50) {
-        aqiColor = "hsl(var(--chart-3))"; // Warning
-        statusText = "Moderate Concern";
-      }
-
-      // Center hotspot
-      L.circle(L.latLng(lat, lon), {
-        radius: 2000,
-        fillColor: aqiColor,
-        fillOpacity: 0.16,
-        color: aqiColor,
-        weight: 1.5,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">City Center AQI Hotspot</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Current Air Quality: <strong style="color: ${aqiColor};">${aqi} AQI</strong> (${statusText})</p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">High traffic and commercial emissions. Planning recommendations focus on zoning restrictions, public transit electrification, and green buffer screens.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
-
-      // Nearby place 1: Traffic/Industrial Corridor (North-East)
-      L.circle(L.latLng(lat + 0.007, lon + 0.012), {
-        radius: 1500,
-        fillColor: aqiColor,
-        fillOpacity: 0.12,
-        color: aqiColor,
-        weight: 1.2,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Industrial Corridor Buffer Zone</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Estimated Air Quality: <strong style="color: ${aqiColor};">${aqi} AQI</strong></p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">Elevated particulate matter due to freight corridors. Recommended intervention: industrial setbacks and mandatory green canopy buffers.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
-
-      // Nearby place 2: Residential Area (South-West)
-      L.circle(L.latLng(lat - 0.011, lon - 0.008), {
-        radius: 1200,
-        fillColor: aqiColor,
-        fillOpacity: 0.14,
-        color: aqiColor,
-        weight: 1.2,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Residential Buffer AQI Sensor</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Estimated Air Quality: <strong style="color: ${aqiColor};">${Math.round(aqi * 0.85)} AQI</strong></p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">Moderate household & local transport emissions. Supports neighborhood tree coverage expansions.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
+      const baseAqi = metrics.airQuality || 50;
+      gridCells.forEach((cell) => {
+        const factor = aqiFactors[cell.row][cell.col];
+        const cellAqi = Math.round(baseAqi * factor);
+        
+        let cellColor = "hsl(var(--chart-2))"; // Good
+        let status = "Good (Low concerns)";
+        if (cellAqi > 100) {
+          cellColor = "hsl(var(--destructive))"; // Critical
+          status = "Critical (Industrial / Traffic Spikes)";
+        } else if (cellAqi > 50) {
+          cellColor = "hsl(var(--chart-3))"; // Warning
+          status = "Moderate Concern";
+        }
+        
+        const desc = cellDescriptions[cell.name]?.aqi || "";
+        const sectorType = cellDescriptions[cell.name]?.type || "Urban Grid";
+        
+        L.polygon(cell.bounds, {
+          fillColor: cellColor,
+          fillOpacity: 0.16,
+          color: cellColor,
+          weight: 1.5,
+          dashArray: "3, 3",
+        })
+          .bindPopup(`
+            <div style="padding: 2px; min-width: 180px;">
+              <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Sector ${cell.name}: ${sectorType}</h4>
+              <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Air Quality: <strong style="color: ${cellColor};">${cellAqi} AQI</strong> (${status})</p>
+              <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">${desc}</p>
+            </div>
+          `)
+          .addTo(overlaysGroup);
+      });
     }
 
     // 2. Vegetation Index Layer (NDVI) - Draw green reserve boundaries
     if (activeLayers.includes("ndvi")) {
-      const ndvi = metrics.vegetationIndex || 0.5;
-      const ndviColor = "hsl(var(--chart-2))";
-      const baseRadius = 1500 + ndvi * 1500;
-
-      // Nearby Park 1: North-West reserve
-      L.circle(L.latLng(lat + 0.012, lon - 0.010), {
-        radius: baseRadius,
-        fillColor: ndviColor,
-        fillOpacity: Math.min(0.25, ndvi * 0.3),
-        color: ndviColor,
-        weight: 1.5,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">North-West Nature Reserve</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">NDVI Green Index: <strong style="color: ${ndviColor};">${ndvi.toFixed(2)}</strong> (Healthy Canopy)</p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">Critical ecological buffer zone. Protect from residential sprawl and commercial zoning developments.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
-
-      // Nearby Park 2: South-East greenbelt
-      L.circle(L.latLng(lat - 0.008, lon + 0.014), {
-        radius: baseRadius * 0.7,
-        fillColor: ndviColor,
-        fillOpacity: Math.min(0.2, ndvi * 0.25),
-        color: ndviColor,
-        weight: 1.5,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">South-East Forest Belt</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">NDVI Green Index: <strong style="color: ${ndviColor};">${(ndvi * 0.75).toFixed(2)}</strong></p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">Important municipal cooling belt and recreational community forest park.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
+      const baseNdvi = metrics.vegetationIndex || 0.5;
+      gridCells.forEach((cell) => {
+        const factor = ndviFactors[cell.row][cell.col];
+        const cellNdvi = Math.min(1.0, Math.max(0.0, baseNdvi * factor));
+        
+        const ndviColor = "hsl(var(--chart-2))";
+        const opacity = Math.min(0.35, cellNdvi * 0.4);
+        
+        const desc = cellDescriptions[cell.name]?.ndvi || "";
+        const sectorType = cellDescriptions[cell.name]?.type || "Urban Grid";
+        
+        L.polygon(cell.bounds, {
+          fillColor: ndviColor,
+          fillOpacity: opacity,
+          color: ndviColor,
+          weight: 1.5,
+          dashArray: "3, 3",
+        })
+          .bindPopup(`
+            <div style="padding: 2px; min-width: 180px;">
+              <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Sector ${cell.name}: ${sectorType}</h4>
+              <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">NDVI Green Index: <strong style="color: ${ndviColor};">${cellNdvi.toFixed(2)}</strong></p>
+              <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">${desc}</p>
+            </div>
+          `)
+          .addTo(overlaysGroup);
+      });
     }
 
     // 3. Temperature Layer (Urban Heat Pockets)
     if (activeLayers.includes("temp")) {
-      const temp = metrics.temperature || 25;
-      const heatColor = "hsl(var(--chart-3))";
-      const opacity = Math.max(0.1, Math.min(0.35, (temp - 15) / 35));
-
-      // Heat Pocket 1: Commercial Downtown (South-East)
-      L.circle(L.latLng(lat - 0.005, lon + 0.004), {
-        radius: 2500,
-        fillColor: heatColor,
-        fillOpacity: opacity,
-        color: heatColor,
-        weight: 1,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Downtown Commercial Heat Pocket</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Estimated Surface Temp: <strong style="color: ${heatColor};">${temp.toFixed(1)}°C</strong></p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">High concrete/asphalt ratio causing heat absorption. Recommendations: cool roofs, light-reflecting pavements, and green roof installations.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
-
-      // Heat Pocket 2: Residential Density (North-West)
-      L.circle(L.latLng(lat + 0.009, lon - 0.006), {
-        radius: 1800,
-        fillColor: heatColor,
-        fillOpacity: opacity * 0.8,
-        color: heatColor,
-        weight: 1,
-      })
-        .bindPopup(`
-          <div style="padding: 2px;">
-            <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">High-Density Residential Heat Pocket</h4>
-            <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Estimated Surface Temp: <strong style="color: ${heatColor};">${(temp - 1.8).toFixed(1)}°C</strong></p>
-            <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">Caused by compact housing and lack of shade trees. Recommended intervention: street-tree plantation and community pocket parks.</p>
-          </div>
-        `)
-        .addTo(overlaysGroup);
+      const baseTemp = metrics.temperature || 25;
+      gridCells.forEach((cell) => {
+        const offset = tempOffsets[cell.row][cell.col];
+        const cellTemp = baseTemp + offset;
+        
+        const heatColor = "hsl(var(--chart-3))";
+        const opacity = Math.max(0.1, Math.min(0.4, (cellTemp - 15) / 30));
+        
+        const desc = cellDescriptions[cell.name]?.temp || "";
+        const sectorType = cellDescriptions[cell.name]?.type || "Urban Grid";
+        
+        L.polygon(cell.bounds, {
+          fillColor: heatColor,
+          fillOpacity: opacity,
+          color: heatColor,
+          weight: 1.5,
+          dashArray: "3, 3",
+        })
+          .bindPopup(`
+            <div style="padding: 2px; min-width: 180px;">
+              <h4 style="font-weight: 700; margin-bottom: 4px; font-size: 13px; color: hsl(var(--foreground));">Sector ${cell.name}: ${sectorType}</h4>
+              <p style="margin: 0; font-size: 11px; color: hsl(var(--muted-foreground));">Surface Temp: <strong style="color: ${heatColor};">${cellTemp.toFixed(1)}°C</strong></p>
+              <p style="margin: 6px 0 0 0; font-size: 10.5px; line-height: 1.3;">${desc}</p>
+            </div>
+          `)
+          .addTo(overlaysGroup);
+      });
     }
 
     // 4. Water Layer - Draw nearby water bodies (lakes/rivers)
