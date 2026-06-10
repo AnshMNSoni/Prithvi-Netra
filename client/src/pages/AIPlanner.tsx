@@ -2,6 +2,7 @@ import { AIInsightsPanel } from "@/components/AIInsightsPanel";
 import { WhatIfSimulator } from "@/components/WhatIfSimulator";
 import { AIChatPanel } from "@/components/AIChatPanel";
 import { MapView } from "@/components/MapView";
+import { Preloader } from "@/components/Preloader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -412,9 +413,9 @@ export default function AIPlanner() {
               <div className="lg:col-span-2">
                 {isLoadingInsights ? (
                   <Card className="p-6 flex items-center justify-center min-h-[300px]">
-                    <div className="text-center space-y-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto animate-infinite"></div>
-                      <p className="text-sm text-muted-foreground mt-2">Generating AI insights...</p>
+                    <div className="text-center space-y-3">
+                      <Preloader />
+                      <p className="text-sm text-muted-foreground">Generating AI insights...</p>
                     </div>
                   </Card>
                 ) : (

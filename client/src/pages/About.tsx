@@ -51,12 +51,12 @@ export default function About() {
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <div className="border-b border-border bg-gradient-to-br from-primary/10 to-chart-2/10">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-20 text-center flex flex-col items-center justify-center">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center">
               About Smart Urban Planner
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg md:text-xl text-muted-foreground text-center leading-relaxed">
               We're on a mission to transform urban planning through the power
               of NASA Earth Observation data, artificial intelligence, and
               community engagement. Our platform enables cities worldwide to
@@ -66,11 +66,11 @@ export default function About() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-16">
         {/* Mission */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Our Mission</h2>
-          <Card className="p-8">
+        <section className="mb-20">
+          <h2 className="text-3xl font-bold mb-8 text-center">Our Mission</h2>
+          <Card className="p-8 max-w-4xl mx-auto text-center border border-border bg-card hover-elevate">
             <p className="text-lg leading-relaxed text-muted-foreground">
               Smart Urban Planner democratizes access to advanced environmental
               analytics, making NASA's powerful Earth observation capabilities
@@ -84,12 +84,12 @@ export default function About() {
         </section>
 
         {/* Values */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Our Values</h2>
+        <section className="mb-20">
+          <h2 className="text-3xl font-bold mb-8 text-center">Our Values</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {values.map((value, index) => (
-              <Card key={index} className="p-6">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary w-fit mb-4">
+              <Card key={index} className="p-6 text-center flex flex-col items-center hover-elevate">
+                <div className="p-3 rounded-lg bg-primary/10 text-primary w-fit mb-4 mx-auto">
                   {value.icon}
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{value.title}</h3>
@@ -102,49 +102,49 @@ export default function About() {
         </section>
 
         {/* Technology */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">Technology Stack</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Data Sources</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  NASA EarthData & GIBS API
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold mb-8 text-center">Technology Stack</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <Card className="p-6 hover-elevate">
+              <h3 className="text-lg font-semibold mb-4 text-center">Data Sources</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <span>NASA EarthData & GIBS API</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  MODIS Vegetation Indices (NDVI)
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <span>MODIS Vegetation Indices (NDVI)</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  OpenAQ Air Quality Data
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <span>OpenAQ Air Quality Data</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  Landsat Surface Temperature
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <span>Landsat Surface Temperature</span>
                 </li>
               </ul>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Platform</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-2" />
-                  React & TypeScript Frontend
+            <Card className="p-6 hover-elevate">
+              <h3 className="text-lg font-semibold mb-4 text-center">Platform</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-2 shrink-0" />
+                  <span>React & TypeScript Frontend</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-2" />
-                  OpenAI GPT for AI Insights
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-2 shrink-0" />
+                  <span>OpenAI GPT for AI Insights</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-2" />
-                  Leaflet Interactive Maps
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-2 shrink-0" />
+                  <span>Leaflet Interactive Maps</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-chart-2" />
-                  Node.js Backend Services
+                <li className="flex items-center justify-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-chart-2 shrink-0" />
+                  <span>Node.js Backend Services</span>
                 </li>
               </ul>
             </Card>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Moon, Sun } from "lucide-react"
 import { flushSync } from "react-dom"
-
+import { useTheme } from "@/components/ThemeProvider"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
 }
 
 export const AnimatedThemeToggler = ({ className }: Props) => {
+  const { setTheme } = useTheme()
   const [isDark, setIsDark] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -37,8 +38,7 @@ export const AnimatedThemeToggler = ({ className }: Props) => {
       flushSync(() => {
         const newTheme = !isDark
         setIsDark(newTheme)
-        document.documentElement.classList.toggle("dark")
-        localStorage.setItem("theme", newTheme ? "dark" : "light")
+        setTheme(newTheme ? "dark" : "light")
       })
     }).ready
 

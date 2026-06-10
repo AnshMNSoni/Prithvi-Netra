@@ -271,50 +271,34 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Map & Charts */}
+      {/* Map */}
       <div className="container mx-auto px-4 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-0 overflow-hidden">
-            <div className="h-[500px]">
-              <MapView
-                center={coordinates}
-                activeLayers={selectedLayers}
-                metrics={metricsData}
-              />
-            </div>
-            <div className="p-4 border-t border-border">
-              <div className="flex flex-wrap gap-2">
-                {layers.map((layer) => (
-                  <Badge
-                    key={layer.id}
-                    variant={
-                      selectedLayers.includes(layer.id) ? "default" : "outline"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => toggleLayer(layer.id)}
-                  >
-                    <div className={`h-2 w-2 rounded-full ${layer.color} mr-2`} />
-                    {layer.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <div className="space-y-6">
-            {chartData && chartData.length > 0 ? (
-              <DataChart
-                title={`Air Quality Trend - ${location}`}
-                data={chartData}
-                color="hsl(var(--chart-1))"
-              />
-            ) : (
-              <Card className="p-6 h-[365px] flex items-center justify-center">
-                <p className="text-muted-foreground">Loading chart data...</p>
-              </Card>
-            )}
+        <Card className="w-full p-0 overflow-hidden">
+          <div className="h-[500px]">
+            <MapView
+              center={coordinates}
+              activeLayers={selectedLayers}
+              metrics={metricsData}
+            />
           </div>
-        </div>
+          <div className="p-4 border-t border-border">
+            <div className="flex flex-wrap gap-2">
+              {layers.map((layer) => (
+                <Badge
+                  key={layer.id}
+                  variant={
+                    selectedLayers.includes(layer.id) ? "default" : "outline"
+                  }
+                  className="cursor-pointer"
+                  onClick={() => toggleLayer(layer.id)}
+                >
+                  <div className={`h-2 w-2 rounded-full ${layer.color} mr-2`} />
+                  {layer.label}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

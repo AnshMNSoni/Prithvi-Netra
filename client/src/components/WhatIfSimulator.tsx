@@ -138,23 +138,50 @@ export function WhatIfSimulator({
           active[int.id] = int.value;
         }
       });
-      onChange(active);
+      
+      // Prevent infinite rendering loop by comparing next active state with the value prop
+      const activeKeys = Object.keys(active);
+      const valueKeys = value ? Object.keys(value) : [];
+      let isDifferent = activeKeys.length !== valueKeys.length;
+      
+      if (!isDifferent) {
+        for (const key of activeKeys) {
+          if (active[key] !== value?.[key]) {
+            isDifferent = true;
+            break;
+          }
+        }
+      }
+      
+      if (isDifferent) {
+        onChange(active);
+      }
     }
-  }, [interventions, onChange]);
+  }, [interventions, onChange, value]);
 
   // Sync with external value updates (e.g. from Apply Intervention)
   useEffect(() => {
     if (value) {
-      setInterventions((prev) =>
-        prev.map((item) => {
-          const hasExternal = value[item.id] !== undefined;
-          return {
-            ...item,
-            enabled: hasExternal,
-            value: hasExternal ? value[item.id] : item.value,
-          };
-        })
-      );
+      let hasChange = false;
+      const nextInterventions = interventions.map((item) => {
+        const hasExternal = value[item.id] !== undefined;
+        const targetValue = hasExternal ? value[item.id] : item.value;
+        const targetEnabled = hasExternal;
+        
+        if (item.enabled !== targetEnabled || item.value !== targetValue) {
+          hasChange = true;
+        }
+        
+        return {
+          ...item,
+          enabled: targetEnabled,
+          value: targetValue,
+        };
+      });
+
+      if (hasChange) {
+        setInterventions(nextInterventions);
+      }
     }
   }, [value]);
 
