@@ -2,7 +2,7 @@
 
 Prithvi Netra is a web-based platform that enables users to analyze, visualize, and plan for urban growth using NASA Earth observation data. The platform focuses on identifying urban challenges and supporting data-driven decision-making for sustainable city development.
 
-## ⚡ Recent Updates (June 2026)
+## Recent Updates (June 2026)
 
 - **Dynamic Statistics**: Replaced hardcoded homepage numbers with real-time stats queried directly from database records (monitored cities, community reports, and active scenario simulations).
 - **AI Insights & Recommendations**: Integrated a POST route fetching custom location-specific insights from Groq API (fallback to metric-based guidelines when offline).
@@ -12,7 +12,7 @@ Prithvi Netra is a web-based platform that enables users to analyze, visualize, 
 - **Animated Trend Graphs**: Embedded 6-month historical AQI and NDVI graphs with entrance animations (powered by `recharts` and `framer-motion`).
 - **PDF Report Downloads**: Fixed ESM named export constructor bug in jsPDF, allowing users to print and download full reports successfully.
 
-## 🌐 Features
+## Features
 
 1️⃣ Urban Issue Analysis: Identify city problems like pollution, lack of greenery, urban heat islands, flood risks, and more.
 
@@ -28,7 +28,7 @@ Prithvi Netra is a web-based platform that enables users to analyze, visualize, 
 
 7️⃣ Citizen Feedback: Include crowdsourced inputs from residents to identify problem areas.
 
-## 💻 User Inputs
+## User Inputs
 
 - City / Location Selection
 
@@ -46,7 +46,7 @@ Prithvi Netra is a web-based platform that enables users to analyze, visualize, 
 
 - Toggle datasets: temperature, NDVI, land use, air pollution, water quality.
 
-## 📲 Example User Flow
+## Example User Flow
 
 ➡️ User visits the website → sees interactive map dashboard.
 
@@ -72,11 +72,11 @@ Prithvi Netra is a web-based platform that enables users to analyze, visualize, 
 
 5️⃣ Deployment: Render
 
-## 🎯 Goal
+## Goal
 
 Prithvi Netra aims to empower urban planners, local authorities, and citizens with actionable insights to make cities more sustainable, green, and livable using data-driven analysis and NASA satellite imagery.
 
-## 👁️ Preview
+## Preview
 
 1️⃣ Home Page
 <img width="1901" height="916" alt="image" src="https://github.com/user-attachments/assets/85258556-778a-4180-bc2c-e98282b0b793" />
@@ -93,7 +93,7 @@ Prithvi Netra aims to empower urban planners, local authorities, and citizens wi
 5️⃣ Policy Insights
 <img width="1893" height="912" alt="image" src="https://github.com/user-attachments/assets/2eb65b27-53c8-4ab2-bd05-2e7f71886ee9" />
 
-## 🔮 Future Work
+## Future Work
 
 - Real-time Data Integration – Incorporate live satellite feeds and IoT sensor data for up-to-date urban monitoring.
 
@@ -103,7 +103,7 @@ Prithvi Netra aims to empower urban planners, local authorities, and citizens wi
 
 - Community Crowdsourcing – Enable residents to provide geotagged feedback, images, and reports for better city planning.
 
-## 📢 Connect with Me
+## Connect with Me
 If you found this project helpful or have any suggestions, feel free to connect:
 
 - [![LinkedIn](https://img.shields.io/badge/LinkedIn-anshmnsoni-0077B5.svg?logo=linkedin)](https://www.linkedin.com/in/anshmnsoni)  
